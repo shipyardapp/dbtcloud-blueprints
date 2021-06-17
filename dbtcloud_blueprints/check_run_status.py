@@ -27,13 +27,14 @@ def write_json_to_file(json_object, file_name):
 def get_run_details(
         account_id,
         run_id,
-        header,
+        headers,
         folder_name,
         file_name=f'run_details_response.json'):
-    get_run_details_url = f'https://cloud.getdbt.com/api/v2/accounts/{account_id}/runs/{run_id}/?include_related=[\'run_steps\',\'debug_logs\']'
+    get_run_details_url = f'https: // cloud.getdbt.com / api / v2 / accounts / {account_id} / runs / {run_id}/
+    params = {"include_related": "['run_steps','debug_logs']"}
     print(f'Grabbing run details for run {run_id}.')
     run_details_req = execute_request.execute_request(
-        'GET', get_run_details_url, header)
+        'GET', get_run_details_url, headers=headers, params=params)
     run_details_response = json.loads(run_details_req.text)
     execute_request.create_folder_if_dne(folder_name)
     combined_name = execute_request.combine_folder_and_file_name(
@@ -58,7 +59,7 @@ def main():
     run_id = args.run_id
     api_key = args.api_key
     bearer_string = f'Bearer {api_key}'
-    header = {'Authorization': bearer_string}
+    headers = {'Authorization': bearer_string}
 
     org_id = os.environ.get("SHIPYARD_ORG_ID") if os.environ.get(
         'USER') == 'shipyard' else account_id
@@ -69,7 +70,7 @@ def main():
     run_details_response = get_run_details(
         account_id,
         run_id,
-        header,
+        headers,
         folder_name=base_folder_name,
         file_name='run_{run_id}_response.json')
     determine_run_status(run_details_response)

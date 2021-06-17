@@ -50,13 +50,13 @@ def log_step_details(run_details_response, folder_name):
 def get_artifact_details(
         account_id,
         run_id,
-        header,
+        headers,
         folder_name,
         file_name=f'artifacts_details_response.json'):
     get_artifact_details_url = f'https://cloud.getdbt.com/api/v2/accounts/{account_id}/runs/{run_id}/artifacts/'
     print(f'Grabbing artifact details for run {run_id}')
     artifact_details_req = execute_request.execute_request(
-        'GET', get_artifact_details_url, header)
+        'GET', get_artifact_details_url, headers)
     artifact_details_response = json.loads(artifact_details_req.text)
     execute_request.create_folder_if_dne(folder_name)
     combined_name = execute_request.combine_folder_and_file_name(
@@ -81,7 +81,7 @@ def download_artifact(
         account_id,
         run_id,
         artifact_name,
-        header,
+        headers,
         folder_name):
     folder_name = f'{folder_name}/artifacts'
     get_artifact_details_url = f'https://cloud.getdbt.com/api/v2/accounts/{account_id}/runs/{run_id}/artifacts/{artifact_name}'
@@ -95,7 +95,7 @@ def download_artifact(
     full_file_name = execute_request.combine_folder_and_file_name(
         full_folder, artifact_file_name)
     artifact_details_req = download_file.download_file(
-        get_artifact_details_url, full_file_name, header)
+        get_artifact_details_url, full_file_name, headers)
 
 
 def main():
@@ -104,7 +104,7 @@ def main():
     run_id = args.run_id
     api_key = args.api_key
     bearer_string = f'Bearer {api_key}'
-    header = {'Authorization': bearer_string}
+    headers = {'Authorization': bearer_string}
 
     org_id = os.environ.get("SHIPYARD_ORG_ID") if os.environ.get(
         'USER') == 'shipyard' else account_id
@@ -115,7 +115,7 @@ def main():
     run_details_response = check_run_status.get_run_details(
         account_id,
         run_id,
-        header,
+        headers,
         folder_name=base_folder_name,
         file_name='run_{run_id}_response.json')
 
@@ -124,12 +124,12 @@ def main():
     artifacts = get_artifact_details(
         account_id,
         run_id,
-        header,
+        headers,
         folder_name=f'{base_folder_name}/artifacts',
         file_name=f'artifacts_{run_id}_response.json')
     if artifacts_exist(artifacts):
         for artifact in artifacts['data']:
-            download_artifact(account_id, run_id, artifact, header)
+            download_artifact(account_id, run_id, artifact, headers)
 
 
 if __name__ == '__main__':

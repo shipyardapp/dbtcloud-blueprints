@@ -52,14 +52,14 @@ def write_json_to_file(json_object, file_name):
 def execute_job(
         account_id,
         job_id,
-        header,
-        folder_name='dbt-blueprint-logs',
+        headers,
+        folder_name,
         file_name='job_details_response.json'):
     execute_job_url = f'https://cloud.getdbt.com/api/v2/accounts/{account_id}/jobs/{job_id}/run/'
     body = {"cause": f"Run from {os.environ['USER']}@{os.environ['HOSTNAME']}"}
     print(f'Kicking off job {job_id} on account {account_id}')
     job_run_req = execute_request.execute_request(
-        'POST', execute_job_url, header, body)
+        'POST', execute_job_url, headers, body)
     job_run_response = json.loads(job_run_req.text)
     execute_request.create_folder_if_dne(folder_name)
     combined_name = execute_request.combine_folder_and_file_name(
@@ -79,7 +79,7 @@ def main():
     download_logs = execute_request.convert_to_boolean(args.download_logs)
     execute_only = execute_request.convert_to_boolean(args.execute_only)
     bearer_string = f'Bearer {api_key}'
-    header = {'Authorization': bearer_string}
+    headers = {'Authorization': bearer_string}
 
     org_id = os.environ.get("SHIPYARD_ORG_ID") if os.environ.get(
         'USER') == 'shipyard' else account_id
@@ -90,7 +90,7 @@ def main():
     job_run_response = execute_job(
         account_id,
         job_id,
-        header,
+        headers,
         folder_name=f'{base_folder_name}/responses',
         file_name=f'job_{job_id}_response.json')
 
@@ -101,7 +101,7 @@ def main():
             run_details_response = check_run_status.get_run_details(
                 account_id,
                 run_id,
-                header,
+                headers,
                 folder_name=base_folder_name,
                 file_name=f'run_{run_id}_response.json')
             is_complete = run_details_response['data']['is_complete']
@@ -119,13 +119,13 @@ def main():
             artifacts = download_logs_artifacts.get_artifact_details(
                 account_id,
                 run_id,
-                header,
+                headers,
                 folder_name=f'{base_folder_name}/artifacts',
                 file_name=f'artifacts_{run_id}_response.json')
             if download_logs_artifacts.artifacts_exist(artifacts):
                 for artifact in artifacts['data']:
                     download_logs_artifacts.download_artifact(
-                        account_id, run_id, artifact, header)
+                        account_id, run_id, artifact, headers)
 
 
 if __name__ == '__main__':
