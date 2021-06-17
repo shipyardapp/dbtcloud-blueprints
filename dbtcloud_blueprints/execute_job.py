@@ -5,6 +5,7 @@ import argparse
 import os
 import json
 import time
+import platform
 
 
 def get_args():
@@ -56,7 +57,11 @@ def execute_job(
         folder_name,
         file_name='job_details_response.json'):
     execute_job_url = f'https://cloud.getdbt.com/api/v2/accounts/{account_id}/jobs/{job_id}/run/'
-    body = {"cause": f"Run from {os.environ['USER']}@{os.environ['HOSTNAME']}"}
+
+    source_information = f'Fleet ID: {os.environ.get("SHIPYARD_FLEET_ID")} Vessel ID: {os.environ.get("SHIPYARD_VESSEL_ID")} Log ID: {os.environ.get("SHIPYARD_LOG_ID")}' if os.environ.get(
+        'USER') == 'shipyard' else f'Run on {platform.platform()}'
+
+    body = {"cause": f"Run by {os.environ['USER']} - {source_information}"}
     print(f'Kicking off job {job_id} on account {account_id}')
     job_run_req = execute_request.execute_request(
         'POST', execute_job_url, headers, body)
@@ -84,7 +89,7 @@ def main():
     org_id = os.environ.get("SHIPYARD_ORG_ID") if os.environ.get(
         'USER') == 'shipyard' else account_id
     log_id = os.environ.get("SHIPYARD_LOG_ID") if os.environ.get(
-        'USER') == 'shipyard' else run_id
+        'USER') == 'shipyard' else job_id
     base_folder_name = f'dbtcloud-blueprint-logs/{org_id}/{log_id}'
 
     job_run_response = execute_job(
@@ -125,7 +130,7 @@ def main():
             if download_logs_artifacts.artifacts_exist(artifacts):
                 for artifact in artifacts['data']:
                     download_logs_artifacts.download_artifact(
-                        account_id, run_id, artifact, headers)
+                        account_id, run_id, artifact, headers, folder_name=base_folder_name)
 
 
 if __name__ == '__main__':
