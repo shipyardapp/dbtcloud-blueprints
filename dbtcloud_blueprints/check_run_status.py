@@ -42,27 +42,14 @@ def get_run_details(
     return run_details_response
 
 
-def check_run_status(account_id, run_id, header, folder_name, file_name):
-    is_complete = False
-    while not is_complete:
-        run_details_response = get_run_details(
-            account_id,
-            run_id,
-            header,
-            folder_name=f'{folder_name}/responses',
-            file_name=f'run_{run_id}_response.json')
-        is_complete = run_details_response['data']['is_complete']
-        if not is_complete:
-            print(
-                f'Run {run_id} is not complete. Waiting 30 seconds and trying again.')
-            time.sleep(30)
+def determine_run_status(run_details_response):
+    run_id = run_details_response['data']['id']
     if run_details_response['data']['is_error']:
         sys.exit(f'dbt Cloud reports that the run {run_id} errored.')
     if run_details_response['data']['is_cancelled']:
         sys.exit(f'dbt Cloud reports that run {run_id} was cancelled.')
     else:
         print(f'dbt Cloud reports that run {run_id} was successful.')
-    return run_details_response
 
 
 def main():
@@ -74,8 +61,13 @@ def main():
     header = {'Authorization': bearer_string}
     folder_name = f'dbt-blueprint-logs/{os.environ.get("SHIPYARD_ORG_ID","orgid")}/{os.environ.get("SHIPYARD_LOG_ID","logid")}'
 
-    check_run_status(account_id, run_id, header, folder_name,
-                     file_name='run_{run_id}_response.json')
+    run_details_response = get_run_details(
+        account_id,
+        run_id,
+        header,
+        folder_name,
+        file_name='run_{run_id}_response.json')
+    determine_run_status(run_details_response)
 
 
 if __name__ == '__main__':

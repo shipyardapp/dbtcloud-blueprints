@@ -4,6 +4,7 @@ import download_logs_artifacts
 import argparse
 import os
 import json
+import time
 
 
 def get_args():
@@ -90,12 +91,20 @@ def main():
 
     if not execute_only:
         run_id = job_run_response['data']['id']
-        run_details_response = check_run_status.check_run_status(
-            account_id,
-            run_id,
-            header,
-            folder_name,
-            file_name=f'run_{run_id}_response.json')
+        is_complete = False
+        while not is_complete:
+            run_details_response = check_run_status.get_run_details(
+                account_id,
+                run_id,
+                header,
+                folder_name,
+                file_name=f'run_{run_id}_response.json')
+            is_complete = run_details_response['data']['is_complete']
+            if not is_complete:
+                print(
+                    f'Run {run_id} is not complete. Waiting 30 seconds and trying again.')
+                time.sleep(30)
+        check_run_status.determine_run_status(run_details_response)
 
         if download_logs:
             download_logs_artifacts.log_step_details(
