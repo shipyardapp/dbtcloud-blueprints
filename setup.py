@@ -19,7 +19,7 @@ config = {
     "author_email": "tech@shipyardapp.com",
     "packages": find_packages(),
     "install_requires": install_requires,
-    "name": "httprequest-blueprints",
+    "name": "dbtcloud-blueprints",
     "version": "v0.1.0",
     "license": "Apache-2.0",
     "classifiers": [
