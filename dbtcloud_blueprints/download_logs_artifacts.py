@@ -110,7 +110,7 @@ def main():
         'USER') == 'shipyard' else account_id
     log_id = os.environ.get("SHIPYARD_LOG_ID") if os.environ.get(
         'USER') == 'shipyard' else run_id
-    base_folder_name = f'dbt-blueprint-logs/{org_id}/{log_id}'
+    base_folder_name = f'dbtcloud-blueprint-logs/{org_id}/{log_id}'
 
     run_details_response = check_run_status.get_run_details(
         account_id,
