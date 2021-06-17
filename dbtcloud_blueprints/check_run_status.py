@@ -46,11 +46,15 @@ def get_run_details(
 def determine_run_status(run_details_response):
     run_id = run_details_response['data']['id']
     if run_details_response['data']['is_error']:
-        sys.exit(f'dbt Cloud reports that the run {run_id} errored.')
+        print(f'dbt Cloud reports that the run {run_id} errored.')
+        exit_code = 1
     if run_details_response['data']['is_cancelled']:
-        sys.exit(f'dbt Cloud reports that run {run_id} was cancelled.')
+        print(f'dbt Cloud reports that run {run_id} was cancelled.')
+        exit_code = 2
     else:
         print(f'dbt Cloud reports that run {run_id} was successful.')
+        exit_code = 0
+    return exit_code
 
 
 def main():
@@ -73,7 +77,7 @@ def main():
         headers,
         folder_name=base_folder_name,
         file_name='run_{run_id}_response.json')
-    determine_run_status(run_details_response)
+    sys.exit(determine_run_status(run_details_response))
 
 
 if __name__ == '__main__':
