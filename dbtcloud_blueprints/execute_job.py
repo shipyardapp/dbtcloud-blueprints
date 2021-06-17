@@ -1,10 +1,9 @@
 from httprequest_blueprints import execute_request, download_file
+import check_run_status
+import download_logs_artifacts
 import argparse
-import requests
 import os
-import code
 import json
-import time
 
 
 def get_args():
@@ -24,6 +23,14 @@ def get_args():
         '--download-logs',
         dest='download_logs',
         default='TRUE',
+        choices={
+            'TRUE',
+            'FALSE'},
+        required=False)
+    parser.add_argument(
+        '--execute-only',
+        dest='execute_only',
+        default='FALSE',
         choices={
             'TRUE',
             'FALSE'},
@@ -61,83 +68,6 @@ def execute_job(
     return job_run_response
 
 
-def get_run_details(
-        account_id,
-        run_id,
-        header,
-        folder_name=f'dbt-blueprint-logs',
-        file_name=f'run_details_response.json'):
-    get_run_details_url = f'https://cloud.getdbt.com/api/v2/accounts/{account_id}/runs/{run_id}/?include_related=[\'run_steps\',\'debug_logs\']'
-    print(f'Grabbing run details for run {run_id}')
-    run_details_req = execute_request.execute_request(
-        'GET', get_run_details_url, header)
-    run_details_response = json.loads(run_details_req.text)
-    execute_request.create_folder_if_dne(folder_name)
-    combined_name = execute_request.combine_folder_and_file_name(
-        folder_name, file_name)
-    write_json_to_file(run_details_response, combined_name)
-    return run_details_response
-
-
-def log_step_details(run_details_response, folder_name):
-    for step in run_details_response['data']['run_steps']:
-        step_id = step['id']
-        execute_request.create_folder_if_dne(f'{folder_name}/responses/')
-        execute_request.create_folder_if_dne(f'{folder_name}/logs/')
-        step_file_name = execute_request.combine_folder_and_file_name(
-            f'{folder_name}/responses/', f'step_{step_id}_response.json')
-        debug_log_name = execute_request.combine_folder_and_file_name(
-            f'{folder_name}/logs/', 'dbt.log')
-        output_log_name = execute_request.combine_folder_and_file_name(
-            f'{folder_name}/logs/', 'dbt_console_output.txt')
-        write_json_to_file(
-            step, step_file_name)
-        with open(debug_log_name, 'a') as f:
-            f.write(step['debug_logs'])
-        with open(output_log_name, 'a') as f:
-            f.write(step['logs'])
-
-
-def get_artifact_details(
-        account_id,
-        run_id,
-        header,
-        folder_name=f'dbt-blueprint-logs',
-        file_name=f'artifacts_details_response.json'):
-    get_artifact_details_url = f'https://cloud.getdbt.com/api/v2/accounts/{account_id}/runs/{run_id}/artifacts/'
-    print(f'Grabbing artifact details for run {run_id}')
-    artifact_details_req = execute_request.execute_request(
-        'GET', get_artifact_details_url, header)
-    artifact_details_response = json.loads(artifact_details_req.text)
-    execute_request.create_folder_if_dne(folder_name)
-    combined_name = execute_request.combine_folder_and_file_name(
-        folder_name, file_name)
-    write_json_to_file(
-        artifact_details_response,
-        combined_name)
-    return artifact_details_response
-
-
-def download_artifact(
-        account_id,
-        run_id,
-        artifact_name,
-        header,
-        folder_name=f'dbt-blueprint-logs/{os.environ.get("SHIPYARD_ORG_ID","orgid")}/{os.environ.get("SHIPYARD_LOG_ID","logid")}/artifacts'):
-    get_artifact_details_url = f'https://cloud.getdbt.com/api/v2/accounts/{account_id}/runs/{run_id}/artifacts/{artifact_name}'
-    artifact_file_name = artifact_name.split('/')[-1]
-    artifact_folder = artifact_name.replace(artifact_name.split('/')[-1], '')
-
-    full_folder = execute_request.combine_folder_and_file_name(
-        folder_name, artifact_folder)
-    execute_request.create_folder_if_dne(full_folder)
-
-    full_file_name = execute_request.combine_folder_and_file_name(
-        full_folder, artifact_file_name)
-    artifact_details_req = download_file.download_file(
-        get_artifact_details_url, full_file_name, header)
-
-
 def main():
     args = get_args()
     account_id = args.account_id
@@ -146,40 +76,42 @@ def main():
     download_artifacts = execute_request.convert_to_boolean(
         args.download_artifacts)
     download_logs = execute_request.convert_to_boolean(args.download_logs)
+    execute_only = execute_request.convert_to_boolean(args.execute_only)
     bearer_string = f'Bearer {api_key}'
     header = {'Authorization': bearer_string}
     folder_name = f'dbt-blueprint-logs/{os.environ.get("SHIPYARD_ORG_ID","orgid")}/{os.environ.get("SHIPYARD_LOG_ID","logid")}'
 
-    # job_run_response = execute_job(account_id, job_id, header, folder_name=f'{folder_name}/responses', file_name=f'job_{job_id}_response.json')
-    # run_id = job_run_response['data']['id']
-    run_id = '21402242'
+    job_run_response = execute_job(
+        account_id,
+        job_id,
+        header,
+        folder_name=f'{folder_name}/responses',
+        file_name=f'job_{job_id}_response.json')
 
-    is_complete = False
-    while not is_complete:
-        run_details_response = get_run_details(
+    if not execute_only:
+        run_id = job_run_response['data']['id']
+        run_details_response = check_run_status.check_run_status(
             account_id,
             run_id,
             header,
-            folder_name=f'{folder_name}/responses',
+            folder_name,
             file_name=f'run_{run_id}_response.json')
-        is_complete = run_details_response['data']['is_complete']
-        if not is_complete:
-            print(
-                f'Run {run_id} is not complete. Waiting 30 seconds and trying again.')
-            time.sleep(30)
 
-    if download_logs:
-        log_step_details(run_details_response, folder_name)
+        if download_logs:
+            download_logs_artifacts.log_step_details(
+                run_details_response, folder_name)
 
-    if download_artifacts:
-        artifacts = get_artifact_details(
-            account_id,
-            run_id,
-            header,
-            folder_name=f'{folder_name}/artifacts',
-            file_name=f'artifacts_{run_id}_response.json')
-        for artifact in artifacts['data']:
-            download_artifact(account_id, run_id, artifact, header)
+        if download_artifacts:
+            artifacts = download_logs_artifacts.get_artifact_details(
+                account_id,
+                run_id,
+                header,
+                folder_name=f'{folder_name}/artifacts',
+                file_name=f'artifacts_{run_id}_response.json')
+            if download_logs_artifacts.artifacts_exist(artifacts):
+                for artifact in artifacts['data']:
+                    download_logs_artifacts.download_artifact(
+                        account_id, run_id, artifact, header)
 
 
 if __name__ == '__main__':
