@@ -30,7 +30,7 @@ def get_run_details(
         headers,
         folder_name,
         file_name=f'run_details_response.json'):
-    get_run_details_url = f'https: // cloud.getdbt.com / api / v2 / accounts / {account_id} / runs / {run_id}/
+    get_run_details_url = f'https://cloud.getdbt.com/api/v2/accounts/{account_id}/runs/{run_id}/'
     params = {"include_related": "['run_steps','debug_logs']"}
     print(f'Grabbing run details for run {run_id}.')
     run_details_req = execute_request.execute_request(
