@@ -129,7 +129,12 @@ def main():
         file_name=f'artifacts_{run_id}_response.json')
     if artifacts_exist(artifacts):
         for artifact in artifacts['data']:
-            download_artifact(account_id, run_id, artifact, headers)
+            download_artifact(
+                account_id,
+                run_id,
+                artifact,
+                headers,
+                folder_name=base_folder_name)
 
 
 if __name__ == '__main__':
