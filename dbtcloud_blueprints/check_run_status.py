@@ -28,7 +28,7 @@ def get_run_details(
         account_id,
         run_id,
         header,
-        folder_name=f'dbt-blueprint-logs',
+        folder_name,
         file_name=f'run_details_response.json'):
     get_run_details_url = f'https://cloud.getdbt.com/api/v2/accounts/{account_id}/runs/{run_id}/?include_related=[\'run_steps\',\'debug_logs\']'
     print(f'Grabbing run details for run {run_id}.')
@@ -59,13 +59,18 @@ def main():
     api_key = args.api_key
     bearer_string = f'Bearer {api_key}'
     header = {'Authorization': bearer_string}
-    folder_name = f'dbt-blueprint-logs/{os.environ.get("SHIPYARD_ORG_ID","orgid")}/{os.environ.get("SHIPYARD_LOG_ID","logid")}'
+
+    org_id = os.environ.get("SHIPYARD_ORG_ID") if os.environ.get(
+        'USER') == 'shipyard' else account_id
+    log_id = os.environ.get("SHIPYARD_LOG_ID") if os.environ.get(
+        'USER') == 'shipyard' else run_id
+    base_folder_name = f'dbt-blueprint-logs/{org_id}/{log_id}'
 
     run_details_response = get_run_details(
         account_id,
         run_id,
         header,
-        folder_name,
+        folder_name=base_folder_name,
         file_name='run_{run_id}_response.json')
     determine_run_status(run_details_response)
 

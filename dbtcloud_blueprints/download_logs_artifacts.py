@@ -51,7 +51,7 @@ def get_artifact_details(
         account_id,
         run_id,
         header,
-        folder_name=f'dbt-blueprint-logs',
+        folder_name,
         file_name=f'artifacts_details_response.json'):
     get_artifact_details_url = f'https://cloud.getdbt.com/api/v2/accounts/{account_id}/runs/{run_id}/artifacts/'
     print(f'Grabbing artifact details for run {run_id}')
@@ -82,7 +82,8 @@ def download_artifact(
         run_id,
         artifact_name,
         header,
-        folder_name=f'dbt-blueprint-logs/{os.environ.get("SHIPYARD_ORG_ID","orgid")}/{os.environ.get("SHIPYARD_LOG_ID","logid")}/artifacts'):
+        folder_name):
+    folder_name = f'{folder_name}/artifacts'
     get_artifact_details_url = f'https://cloud.getdbt.com/api/v2/accounts/{account_id}/runs/{run_id}/artifacts/{artifact_name}'
     artifact_file_name = artifact_name.split('/')[-1]
     artifact_folder = artifact_name.replace(artifact_name.split('/')[-1], '')
@@ -104,18 +105,27 @@ def main():
     api_key = args.api_key
     bearer_string = f'Bearer {api_key}'
     header = {'Authorization': bearer_string}
-    folder_name = f'dbt-blueprint-logs/{os.environ.get("SHIPYARD_ORG_ID","orgid")}/{os.environ.get("SHIPYARD_LOG_ID","logid")}'
+
+    org_id = os.environ.get("SHIPYARD_ORG_ID") if os.environ.get(
+        'USER') == 'shipyard' else account_id
+    log_id = os.environ.get("SHIPYARD_LOG_ID") if os.environ.get(
+        'USER') == 'shipyard' else run_id
+    base_folder_name = f'dbt-blueprint-logs/{org_id}/{log_id}'
 
     run_details_response = check_run_status.get_run_details(
-        account_id, run_id, header, folder_name, file_name='run_{run_id}_response.json')
+        account_id,
+        run_id,
+        header,
+        folder_name=base_folder_name,
+        file_name='run_{run_id}_response.json')
 
-    log_step_details(run_details_response, folder_name)
+    log_step_details(run_details_response, folder_name=base_folder_name)
 
     artifacts = get_artifact_details(
         account_id,
         run_id,
         header,
-        folder_name=f'{folder_name}/artifacts',
+        folder_name=f'{base_folder_name}/artifacts',
         file_name=f'artifacts_{run_id}_response.json')
     if artifacts_exist(artifacts):
         for artifact in artifacts['data']:
