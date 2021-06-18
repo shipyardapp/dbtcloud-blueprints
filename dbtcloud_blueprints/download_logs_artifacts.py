@@ -11,6 +11,22 @@ def get_args():
     parser.add_argument('--api-key', dest='api_key', required=True)
     parser.add_argument('--account-id', dest='account_id', required=True)
     parser.add_argument('--run-id', dest='run_id', required=True)
+    parser.add_argument(
+        '--download-artifacts',
+        dest='download_artifacts',
+        default='TRUE',
+        choices={
+            'TRUE',
+            'FALSE'},
+        required=False)
+    parser.add_argument(
+        '--download-logs',
+        dest='download_logs',
+        default='TRUE',
+        choices={
+            'TRUE',
+            'FALSE'},
+        required=False)
     args = parser.parse_args()
     return args
 
@@ -22,6 +38,7 @@ def write_json_to_file(json_object, file_name):
                 json_object,
                 ensure_ascii=False,
                 indent=4))
+    print(f'Response stored at {file_name}')
 
 
 def log_step_details(run_details_response, folder_name):
@@ -29,22 +46,31 @@ def log_step_details(run_details_response, folder_name):
         print(
             f'No logs to download for run {run_details_response["data"]["id"]}')
     else:
-        for step in run_details_response['data']['run_steps']:
+        execute_request.create_folder_if_dne(f'{folder_name}/responses/')
+        execute_request.create_folder_if_dne(f'{folder_name}/logs/')
+        debug_log_name = execute_request.combine_folder_and_file_name(
+            f'{folder_name}/logs/', 'dbt.log')
+        output_log_name = execute_request.combine_folder_and_file_name(
+            f'{folder_name}/logs/', 'dbt_console_output.txt')
+        number_of_steps = len(run_details_response['data']['run_steps'])
+        for index, step in enumerate(
+                run_details_response['data']['run_steps']):
             step_id = step['id']
-            execute_request.create_folder_if_dne(f'{folder_name}/responses/')
-            execute_request.create_folder_if_dne(f'{folder_name}/logs/')
+            print(
+                f'Grabbing step details for step {step_id} ({index+1} of {number_of_steps})')
             step_file_name = execute_request.combine_folder_and_file_name(
                 f'{folder_name}/responses/', f'step_{step_id}_response.json')
-            debug_log_name = execute_request.combine_folder_and_file_name(
-                f'{folder_name}/logs/', 'dbt.log')
-            output_log_name = execute_request.combine_folder_and_file_name(
-                f'{folder_name}/logs/', 'dbt_console_output.txt')
+
             write_json_to_file(
                 step, step_file_name)
+
             with open(debug_log_name, 'a') as f:
                 f.write(step['debug_logs'])
+
             with open(output_log_name, 'a') as f:
                 f.write(step['logs'])
+        print(f'Successfully wrote logs to {output_log_name}')
+        print(f'Successfully wrote debug_logs to {debug_log_name}')
 
 
 def get_artifact_details(
@@ -74,6 +100,8 @@ def artifacts_exist(artifact_details_response):
             'No artifacts exist for this run.')
     else:
         artifacts_exist = True
+        print(
+            f"There are {len(artifact_details_response['data'])} artifacts to download.")
     return artifacts_exist
 
 
@@ -93,8 +121,11 @@ def download_artifact(
 
     full_file_name = execute_request.combine_folder_and_file_name(
         full_folder, artifact_file_name)
-    artifact_details_req = download_file.download_file(
-        get_artifact_details_url, full_file_name, headers)
+    try:
+        artifact_details_req = download_file.download_file(
+            get_artifact_details_url, full_file_name, headers)
+    except BaseException:
+        print('Failed to download file {get_artifact_details_url}')
 
 
 def main():
@@ -102,6 +133,9 @@ def main():
     account_id = args.account_id
     run_id = args.run_id
     api_key = args.api_key
+    download_artifacts = execute_request.convert_to_boolean(
+        args.download_artifacts)
+    download_logs = execute_request.convert_to_boolean(args.download_logs)
     bearer_string = f'Bearer {api_key}'
     headers = {'Authorization': bearer_string}
 
@@ -118,22 +152,26 @@ def main():
         folder_name=f'{base_folder_name}/responses',
         file_name=f'run_{run_id}_response.json')
 
-    log_step_details(run_details_response, folder_name=base_folder_name)
+    if download_logs:
+        log_step_details(run_details_response, folder_name=base_folder_name)
 
-    artifacts = get_artifact_details(
-        account_id,
-        run_id,
-        headers,
-        folder_name=f'{base_folder_name}/responses',
-        file_name=f'artifacts_{run_id}_response.json')
-    if artifacts_exist(artifacts):
-        for artifact in artifacts['data']:
-            download_artifact(
-                account_id,
-                run_id,
-                artifact,
-                headers,
-                folder_name=f'{base_folder_name}/artifacts')
+    if download_artifacts:
+        artifacts = get_artifact_details(
+            account_id,
+            run_id,
+            headers,
+            folder_name=f'{base_folder_name}/responses',
+            file_name=f'artifacts_{run_id}_response.json')
+        if artifacts_exist(artifacts):
+            for index, artifact in enumerate(artifacts['data']):
+                print(
+                    f"Downloading file {index+1} of {len(artifacts['data'])}")
+                download_artifact(
+                    account_id,
+                    run_id,
+                    artifact,
+                    headers,
+                    folder_name=f'{base_folder_name}/artifacts')
 
 
 if __name__ == '__main__':

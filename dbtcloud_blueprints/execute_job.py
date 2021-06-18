@@ -48,6 +48,7 @@ def write_json_to_file(json_object, file_name):
                 json_object,
                 ensure_ascii=False,
                 indent=4))
+    print(f'Response stored at {file_name}')
 
 
 def execute_job(
@@ -131,7 +132,9 @@ def main():
                 folder_name=f'{base_folder_name}/responses',
                 file_name=f'artifacts_{run_id}_response.json')
             if download_logs_artifacts.artifacts_exist(artifacts):
-                for artifact in artifacts['data']:
+                for index, artifact in enumerate(artifacts['data']):
+                    print(
+                        f"Downloading file {index+1} of {len(artifacts['data'])}")
                     download_logs_artifacts.download_artifact(
                         account_id, run_id, artifact, headers, folder_name=f'{base_folder_name}/artifacts')
 

@@ -22,6 +22,7 @@ def write_json_to_file(json_object, file_name):
                 json_object,
                 ensure_ascii=False,
                 indent=4))
+    print(f'Response stored at {file_name}')
 
 
 def get_run_details(
