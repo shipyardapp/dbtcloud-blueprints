@@ -1,6 +1,6 @@
 from httprequest_blueprints import execute_request, download_file
-import check_run_status
-import download_logs_artifacts
+from . import check_run_status
+from . import download_logs_artifacts
 import argparse
 import os
 import json

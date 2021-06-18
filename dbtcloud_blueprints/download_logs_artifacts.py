@@ -1,5 +1,5 @@
 from httprequest_blueprints import execute_request, download_file
-import check_run_status
+from . import check_run_status
 import argparse
 import os
 import json
