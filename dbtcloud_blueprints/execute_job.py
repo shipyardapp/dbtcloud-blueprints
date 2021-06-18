@@ -128,7 +128,7 @@ def main():
                 time.sleep(30)
         # Quick solution to prevent pulling logs at the same moment the job
         # completes.
-        time.sleep(10)
+        time.sleep(30)
         check_run_status.determine_run_status(run_details_response)
 
         if download_logs:
