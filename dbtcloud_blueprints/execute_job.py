@@ -107,13 +107,16 @@ def main():
                 account_id,
                 run_id,
                 headers,
-                folder_name=base_folder_name,
+                folder_name=f'{base_folder_name}/responses',
                 file_name=f'run_{run_id}_response.json')
             is_complete = run_details_response['data']['is_complete']
             if not is_complete:
                 print(
                     f'Run {run_id} is not complete. Waiting 30 seconds and trying again.')
                 time.sleep(30)
+        # Quick solution to prevent pulling logs at the same moment the job
+        # completes.
+        time.sleep(10)
         check_run_status.determine_run_status(run_details_response)
 
         if download_logs:
@@ -125,12 +128,12 @@ def main():
                 account_id,
                 run_id,
                 headers,
-                folder_name=f'{base_folder_name}/artifacts',
+                folder_name=f'{base_folder_name}/responses',
                 file_name=f'artifacts_{run_id}_response.json')
             if download_logs_artifacts.artifacts_exist(artifacts):
                 for artifact in artifacts['data']:
                     download_logs_artifacts.download_artifact(
-                        account_id, run_id, artifact, headers, folder_name=base_folder_name)
+                        account_id, run_id, artifact, headers, folder_name=f'{base_folder_name}/artifacts')
 
 
 if __name__ == '__main__':

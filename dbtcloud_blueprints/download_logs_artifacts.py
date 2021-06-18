@@ -83,7 +83,6 @@ def download_artifact(
         artifact_name,
         headers,
         folder_name):
-    folder_name = f'{folder_name}/artifacts'
     get_artifact_details_url = f'https://cloud.getdbt.com/api/v2/accounts/{account_id}/runs/{run_id}/artifacts/{artifact_name}'
     artifact_file_name = artifact_name.split('/')[-1]
     artifact_folder = artifact_name.replace(artifact_name.split('/')[-1], '')
@@ -116,8 +115,8 @@ def main():
         account_id,
         run_id,
         headers,
-        folder_name=base_folder_name,
-        file_name='run_{run_id}_response.json')
+        folder_name=f'{base_folder_name}/responses',
+        file_name=f'run_{run_id}_response.json')
 
     log_step_details(run_details_response, folder_name=base_folder_name)
 
@@ -125,7 +124,7 @@ def main():
         account_id,
         run_id,
         headers,
-        folder_name=f'{base_folder_name}/artifacts',
+        folder_name=f'{base_folder_name}/responses',
         file_name=f'artifacts_{run_id}_response.json')
     if artifacts_exist(artifacts):
         for artifact in artifacts['data']:
@@ -134,7 +133,7 @@ def main():
                 run_id,
                 artifact,
                 headers,
-                folder_name=base_folder_name)
+                folder_name=f'{base_folder_name}/artifacts')
 
 
 if __name__ == '__main__':

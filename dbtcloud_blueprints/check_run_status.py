@@ -75,8 +75,8 @@ def main():
         account_id,
         run_id,
         headers,
-        folder_name=base_folder_name,
-        file_name='run_{run_id}_response.json')
+        folder_name=f'{base_folder_name}/responses',
+        file_name=f'run_{run_id}_response.json')
     sys.exit(determine_run_status(run_details_response))
 
 
