@@ -46,15 +46,19 @@ def get_run_details(
 
 def determine_run_status(run_details_response):
     run_id = run_details_response['data']['id']
-    if run_details_response['data']['is_error']:
-        print(f'dbt Cloud reports that the run {run_id} errored.')
-        exit_code = 1
-    if run_details_response['data']['is_cancelled']:
-        print(f'dbt Cloud reports that run {run_id} was cancelled.')
-        exit_code = 2
+    if run_details_response['data']['is_complete']:
+        if run_details_response['data']['is_error']:
+            print(f'dbt Cloud reports that the run {run_id} errored.')
+            exit_code = 1
+        if run_details_response['data']['is_cancelled']:
+            print(f'dbt Cloud reports that run {run_id} was cancelled.')
+            exit_code = 2
+        else:
+            print(f'dbt Cloud reports that run {run_id} was successful.')
+            exit_code = 0
     else:
-        print(f'dbt Cloud reports that run {run_id} was successful.')
-        exit_code = 0
+        print(f'dbt Cloud reports that the run {run_id} is not yet completed.')
+        exit_code = 255
     return exit_code
 
 
