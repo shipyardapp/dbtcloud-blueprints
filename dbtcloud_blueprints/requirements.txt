@@ -1,1 +1,1 @@
-git+https://github.com/shipyardapp/httprequest-blueprints.git@functions-for-additional-api-integrations
+git+https://github.com/shipyardapp/httprequest-blueprints@functions-for-additional-api-integrations
