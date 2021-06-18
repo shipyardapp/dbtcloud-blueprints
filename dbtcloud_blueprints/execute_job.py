@@ -30,9 +30,9 @@ def get_args():
             'FALSE'},
         required=False)
     parser.add_argument(
-        '--execute-only',
-        dest='execute_only',
-        default='FALSE',
+        '--check-status',
+        dest='check_status',
+        default='TRUE',
         choices={
             'TRUE',
             'FALSE'},
@@ -82,7 +82,7 @@ def main():
     download_artifacts = execute_request.convert_to_boolean(
         args.download_artifacts)
     download_logs = execute_request.convert_to_boolean(args.download_logs)
-    execute_only = execute_request.convert_to_boolean(args.execute_only)
+    check_status = execute_request.convert_to_boolean(args.check_status)
     bearer_string = f'Bearer {api_key}'
     headers = {'Authorization': bearer_string}
 
@@ -99,7 +99,7 @@ def main():
         folder_name=f'{base_folder_name}/responses',
         file_name=f'job_{job_id}_response.json')
 
-    if not execute_only:
+    if check_status:
         run_id = job_run_response['data']['id']
         is_complete = False
         while not is_complete:
