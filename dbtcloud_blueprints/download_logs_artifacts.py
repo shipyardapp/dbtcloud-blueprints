@@ -3,14 +3,14 @@ import check_run_status
 import argparse
 import os
 import json
-import code
+import pickle
 
 
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--api-key', dest='api_key', required=True)
     parser.add_argument('--account-id', dest='account_id', required=True)
-    parser.add_argument('--run-id', dest='run_id', required=True)
+    parser.add_argument('--run-id', dest='run_id', required=False)
     parser.add_argument(
         '--download-artifacts',
         dest='download_artifacts',
@@ -141,9 +141,24 @@ def main():
 
     org_id = os.environ.get("SHIPYARD_ORG_ID") if os.environ.get(
         'USER') == 'shipyard' else account_id
+    fleet_log_id = os.environ.get("SHIPYARD_FLEET_LOG_ID") if os.environ.get(
+        'USER') == 'shipyard' else ''
+
+    pickle_folder_name = execute_request.clean_folder_name(
+        f'dbtcloud-blueprint-logs/{org_id}/{fleet_log_id}')
+    pickle_file_name = execute_request.combine_folder_and_file_name(
+        pickle_folder_name, 'run_id.pickle')
+
+    if args.run_id:
+        run_id = args.run_id
+    else:
+        with open(pickle_file_name, 'rb') as f:
+            run_id = pickle.load(f)
+
     log_id = os.environ.get("SHIPYARD_LOG_ID") if os.environ.get(
         'USER') == 'shipyard' else run_id
-    base_folder_name = f'dbtcloud-blueprint-logs/{org_id}/{log_id}'
+    base_folder_name = execute_request.clean_folder_name(
+        f'dbtcloud-blueprint-logs/{org_id}/{fleet_log_id}/{log_id}')
 
     run_details_response = check_run_status.get_run_details(
         account_id,

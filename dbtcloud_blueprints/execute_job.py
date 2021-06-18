@@ -6,6 +6,7 @@ import os
 import json
 import time
 import platform
+import pickle
 
 
 def get_args():
@@ -89,9 +90,12 @@ def main():
 
     org_id = os.environ.get("SHIPYARD_ORG_ID") if os.environ.get(
         'USER') == 'shipyard' else account_id
+    fleet_log_id = os.environ.get("SHIPYARD_FLEET_LOG_ID") if os.environ.get(
+        'USER') == 'shipyard' else ''
     log_id = os.environ.get("SHIPYARD_LOG_ID") if os.environ.get(
         'USER') == 'shipyard' else job_id
-    base_folder_name = f'dbtcloud-blueprint-logs/{org_id}/{log_id}'
+    base_folder_name = execute_request.clean_folder_name(
+        f'dbtcloud-blueprint-logs/{org_id}/{fleet_log_id}/{log_id}')
 
     job_run_response = execute_job(
         account_id,
@@ -100,8 +104,15 @@ def main():
         folder_name=f'{base_folder_name}/responses',
         file_name=f'job_{job_id}_response.json')
 
+    run_id = job_run_response['data']['id']
+    pickle_folder_name = execute_request.clean_folder_name(
+        f'dbtcloud-blueprint-logs/{org_id}/{fleet_log_id}')
+    pickle_file_name = execute_request.combine_folder_and_file_name(
+        pickle_folder_name, 'run_id.pickle')
+    with open(pickle_file_name, 'wb') as f:
+        pickle.dump(run_id, f)
+
     if check_status:
-        run_id = job_run_response['data']['id']
         is_complete = False
         while not is_complete:
             run_details_response = check_run_status.get_run_details(
