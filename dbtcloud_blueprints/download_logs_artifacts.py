@@ -1,9 +1,14 @@
 from httprequest_blueprints import execute_request, download_file
-from . import check_run_status
 import argparse
 import os
 import json
 import pickle
+
+# Handle import difference between local and github install
+try:
+    import check_run_status
+except BaseException:
+    from . import check_run_status
 
 
 def get_args():
