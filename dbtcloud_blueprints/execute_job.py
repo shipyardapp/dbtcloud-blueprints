@@ -95,11 +95,12 @@ def main():
     bearer_string = f'Bearer {api_key}'
     headers = {'Authorization': bearer_string}
 
-    org_id = os.environ.get("SHIPYARD_ORG_ID") if os.environ.get(
+    org_id = os.environ.get('SHIPYARD_ORG_ID') if os.environ.get(
         'USER') == 'shipyard' else account_id
-    fleet_log_id = os.environ.get("SHIPYARD_FLEET_LOG_ID") if os.environ.get(
-        'USER') == 'shipyard' else ''
-    log_id = os.environ.get("SHIPYARD_LOG_ID") if os.environ.get(
+    fleet_log_id = os.environ.get(
+        'SHIPYARD_FLEET_LOG_ID',
+        '') if os.environ.get('USER') == 'shipyard' else ''
+    log_id = os.environ.get('SHIPYARD_LOG_ID') if os.environ.get(
         'USER') == 'shipyard' else job_id
     base_folder_name = execute_request.clean_folder_name(
         f'dbtcloud-blueprint-logs/{org_id}/{fleet_log_id}/{log_id}')
