@@ -132,7 +132,7 @@ def main():
         # Quick solution to prevent pulling logs at the same moment the job
         # completes.
         time.sleep(30)
-        check_run_status.determine_run_status(run_details_response)
+        exit_code = check_run_status.determine_run_status(run_details_response)
 
         if download_logs:
             download_logs_artifacts.log_step_details(
@@ -151,6 +151,8 @@ def main():
                         f"Downloading file {index+1} of {len(artifacts['data'])}")
                     download_logs_artifacts.download_artifact(
                         account_id, run_id, artifact, headers, folder_name=f'{base_folder_name}/artifacts')
+
+        sys.exit(exit_code)
 
 
 if __name__ == '__main__':
