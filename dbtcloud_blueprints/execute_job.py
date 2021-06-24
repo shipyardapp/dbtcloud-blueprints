@@ -95,15 +95,9 @@ def main():
     bearer_string = f'Bearer {api_key}'
     headers = {'Authorization': bearer_string}
 
-    org_id = os.environ.get('SHIPYARD_ORG_ID') if os.environ.get(
-        'USER') == 'shipyard' else account_id
-    fleet_log_id = os.environ.get(
-        'SHIPYARD_FLEET_LOG_ID',
-        '') if os.environ.get('USER') == 'shipyard' else ''
-    log_id = os.environ.get('SHIPYARD_LOG_ID') if os.environ.get(
-        'USER') == 'shipyard' else job_id
+    artifact_directory_default = f'{os.environ.get("USER")}-artifacts'
     base_folder_name = execute_request.clean_folder_name(
-        f'dbtcloud-blueprint-logs/{org_id}/{fleet_log_id}/{log_id}')
+        f'{os.environ.get("SHIPYARD_ARTIFACTS_DIRECTORY",artifact_directory_default)}/dbtcloud-blueprints/')
 
     job_run_response = execute_job(
         account_id,
@@ -114,7 +108,8 @@ def main():
 
     run_id = job_run_response['data']['id']
     pickle_folder_name = execute_request.clean_folder_name(
-        f'dbtcloud-blueprint-logs/{org_id}/{fleet_log_id}')
+        f'{base_folder_name}/variables')
+    execute_request.create_folder_if_dne(pickle_folder_name)
     pickle_file_name = execute_request.combine_folder_and_file_name(
         pickle_folder_name, 'run_id.pickle')
     with open(pickle_file_name, 'wb') as f:
