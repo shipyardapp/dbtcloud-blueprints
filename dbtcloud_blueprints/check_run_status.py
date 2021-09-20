@@ -50,7 +50,7 @@ def determine_run_status(run_details_response):
         if run_details_response['data']['is_error']:
             print(f'dbt Cloud reports that the run {run_id} errored.')
             exit_code = 1
-        if run_details_response['data']['is_cancelled']:
+        elif run_details_response['data']['is_cancelled']:
             print(f'dbt Cloud reports that run {run_id} was cancelled.')
             exit_code = 2
         else:
