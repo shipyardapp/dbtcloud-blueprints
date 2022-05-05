@@ -20,8 +20,7 @@ EXIT_CODE_FINAL_STATUS_SUCCESS = 0
 EXIT_CODE_UNKNOWN_ERROR = 3
 EXIT_CODE_INVALID_CREDENTIALS = 200
 EXIT_CODE_INVALID_ACCOUNT = 201
-EXIT_CODE_INVALID_JOB = 202
-EXIT_CODE_INVALID_RUN = 203
+EXIT_CODE_INVALID_RESOURCE = 202
 EXIT_CODE_FINAL_STATUS_ERRORED = 204
 EXIT_CODE_FINAL_STATUS_CANCELLED = 205
 EXIT_CODE_STATUS_INCOMPLETE = 206
@@ -72,13 +71,26 @@ def write_json_to_file(json_object, file_name):
 
 def determine_connection_status(run_details_response):
     status_code = run_details_response['status']['code']
-    user_message = run_details_response['status']['user_message'].lower()
+    user_message = run_details_response['status']['user_message']
     if status_code == 401:
-        if 'invalid token' in user_message:
+        if 'Invalid token' in user_message:
             print('The API Key provided was invalid. Check to make sure there are no typos or preceding/trailing spaces.')
+            print(user_message)
             sys.exit(EXIT_CODE_INVALID_CREDENTIALS)
         else:
-            print('An unknown error occured.')
+            print(
+                f'An unknown error occurred with a status code of {status_code}')
+            print(user_message)
+            sys.exit(EXIT_CODE_UNKNOWN_ERROR)
+    if status_code == 404:
+        if 'requested resource not found':
+            print('The Account ID, Job ID, or Run ID provided was either invalid or your API Key doesn\'t have access to it. Check to make sure there are no typos or preceding/trailing spaces.')
+            print(user_message)
+            sys.exit(EXIT_CODE_INVALID_RESOURCE)
+        else:
+            print(
+                f'An unknown error occurred with a status code of {status_code}')
+            print(user_message)
             sys.exit(EXIT_CODE_UNKNOWN_ERROR)
     return status_code
 
