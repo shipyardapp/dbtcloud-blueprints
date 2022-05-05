@@ -3,12 +3,22 @@ import argparse
 import os
 import json
 import pickle
+import sys
 
 # Handle import difference between local and github install
 try:
     import check_run_status
 except BaseException:
     from . import check_run_status
+
+EXIT_CODE_FINAL_STATUS_SUCCESS = 0
+EXIT_CODE_UNKNOWN_ERROR = 3
+EXIT_CODE_INVALID_CREDENTIALS = 200
+EXIT_CODE_INVALID_ACCOUNT = 201
+EXIT_CODE_INVALID_RESOURCE = 202
+EXIT_CODE_FINAL_STATUS_ERRORED = 204
+EXIT_CODE_FINAL_STATUS_CANCELLED = 205
+EXIT_CODE_STATUS_INCOMPLETE = 206
 
 
 def get_args():
@@ -133,6 +143,31 @@ def download_artifact(
         print('Failed to download file {get_artifact_details_url}')
 
 
+def determine_connection_status(run_details_response):
+    status_code = run_details_response['status']['code']
+    user_message = run_details_response['status']['user_message']
+    if status_code == 401:
+        if 'Invalid token' in user_message:
+            print('The API Key provided was invalid. Check to make sure there are no typos or preceding/trailing spaces.')
+            print(user_message)
+            sys.exit(EXIT_CODE_INVALID_CREDENTIALS)
+        else:
+            print(
+                f'An unknown error occurred with a status code of {status_code}')
+            print(user_message)
+            sys.exit(EXIT_CODE_UNKNOWN_ERROR)
+    if status_code == 404:
+        if 'requested resource not found':
+            print('The Account ID, Job ID, or Run ID provided was either invalid or your API Key doesn\'t have access to it. Check to make sure there are no typos or preceding/trailing spaces.')
+            print(user_message)
+            sys.exit(EXIT_CODE_INVALID_RESOURCE)
+        else:
+            print(
+                f'An unknown error occurred with a status code of {status_code}')
+            print(user_message)
+            sys.exit(EXIT_CODE_UNKNOWN_ERROR)
+
+
 def main():
     args = get_args()
     account_id = args.account_id
@@ -166,6 +201,7 @@ def main():
         headers,
         folder_name=f'{base_folder_name}/responses',
         file_name=f'run_{run_id}_response.json')
+    determine_connection_status(run_details_response)
 
     if download_logs:
         log_step_details(run_details_response, folder_name=base_folder_name)
