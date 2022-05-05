@@ -92,7 +92,6 @@ def determine_connection_status(run_details_response):
                 f'An unknown error occurred with a status code of {status_code}')
             print(user_message)
             sys.exit(EXIT_CODE_UNKNOWN_ERROR)
-    return status_code
 
 
 def execute_job(
