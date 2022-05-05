@@ -142,8 +142,7 @@ def main():
         folder_name=f'{base_folder_name}/responses',
         file_name=f'job_{job_id}_response.json')
 
-    status_code = determine_connection_status(job_run_response)
-    print(status_code)
+    determine_connection_status(job_run_response)
 
     run_id = job_run_response['data']['id']
     pickle_folder_name = execute_request.clean_folder_name(
