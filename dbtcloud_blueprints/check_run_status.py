@@ -5,6 +5,15 @@ import json
 import sys
 import pickle
 
+EXIT_CODE_FINAL_STATUS_SUCCESS = 0
+EXIT_CODE_UNKNOWN_ERROR = 3
+EXIT_CODE_INVALID_CREDENTIALS = 200
+EXIT_CODE_INVALID_ACCOUNT = 201
+EXIT_CODE_INVALID_RESOURCE = 202
+EXIT_CODE_FINAL_STATUS_ERRORED = 204
+EXIT_CODE_FINAL_STATUS_CANCELLED = 205
+EXIT_CODE_STATUS_INCOMPLETE = 206
+
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -49,17 +58,42 @@ def determine_run_status(run_details_response):
     if run_details_response['data']['is_complete']:
         if run_details_response['data']['is_error']:
             print(f'dbt Cloud reports that the run {run_id} errored.')
-            exit_code = 1
+            exit_code = EXIT_CODE_FINAL_STATUS_ERRORED
         elif run_details_response['data']['is_cancelled']:
             print(f'dbt Cloud reports that run {run_id} was cancelled.')
-            exit_code = 2
+            exit_code = EXIT_CODE_FINAL_STATUS_CANCELLED
         else:
             print(f'dbt Cloud reports that run {run_id} was successful.')
-            exit_code = 0
+            exit_code = EXIT_CODE_FINAL_STATUS_SUCCESS
     else:
         print(f'dbt Cloud reports that the run {run_id} is not yet completed.')
-        exit_code = 255
+        exit_code = EXIT_CODE_STATUS_INCOMPLETE
     return exit_code
+
+
+def determine_connection_status(run_details_response):
+    status_code = run_details_response['status']['code']
+    user_message = run_details_response['status']['user_message']
+    if status_code == 401:
+        if 'Invalid token' in user_message:
+            print('The API Key provided was invalid. Check to make sure there are no typos or preceding/trailing spaces.')
+            print(user_message)
+            sys.exit(EXIT_CODE_INVALID_CREDENTIALS)
+        else:
+            print(
+                f'An unknown error occurred with a status code of {status_code}')
+            print(user_message)
+            sys.exit(EXIT_CODE_UNKNOWN_ERROR)
+    if status_code == 404:
+        if 'requested resource not found':
+            print('The Account ID, Job ID, or Run ID provided was either invalid or your API Key doesn\'t have access to it. Check to make sure there are no typos or preceding/trailing spaces.')
+            print(user_message)
+            sys.exit(EXIT_CODE_INVALID_RESOURCE)
+        else:
+            print(
+                f'An unknown error occurred with a status code of {status_code}')
+            print(user_message)
+            sys.exit(EXIT_CODE_UNKNOWN_ERROR)
 
 
 def main():
@@ -91,6 +125,7 @@ def main():
         headers,
         folder_name=f'{base_folder_name}/responses',
         file_name=f'run_{run_id}_response.json')
+    determine_connection_status(run_details_response)
     sys.exit(determine_run_status(run_details_response))
 
 
