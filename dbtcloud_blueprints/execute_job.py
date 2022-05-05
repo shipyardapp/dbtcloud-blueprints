@@ -16,6 +16,16 @@ except BaseException:
     from . import check_run_status
     from . import download_logs_artifacts
 
+EXIT_CODE_FINAL_STATUS_SUCCESS = 0
+EXIT_CODE_UNKNOWN_ERROR = 3
+EXIT_CODE_INVALID_CREDENTIALS = 200
+EXIT_CODE_INVALID_ACCOUNT = 201
+EXIT_CODE_INVALID_JOB = 202
+EXIT_CODE_INVALID_RUN = 203
+EXIT_CODE_FINAL_STATUS_ERRORED = 204
+EXIT_CODE_FINAL_STATUS_CANCELLED = 205
+EXIT_CODE_STATUS_INCOMPLETE = 206
+
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -58,6 +68,19 @@ def write_json_to_file(json_object, file_name):
                 ensure_ascii=False,
                 indent=4))
     print(f'Response stored at {file_name}')
+
+
+def determine_connection_status(run_details_response):
+    status_code = run_details_response['status']['code']
+    user_message = run_details_response['status']['user_message'].lower()
+    if status_code == 401:
+        if 'invalid token' in user_message:
+            print('The API Key provided was invalid. Check to make sure there are no typos or preceding/trailing spaces.')
+            sys.exit(EXIT_CODE_INVALID_CREDENTIALS)
+        else:
+            print('An unknown error occured.')
+            sys.exit(EXIT_CODE_UNKNOWN_ERROR)
+    return status_code
 
 
 def execute_job(
@@ -106,6 +129,9 @@ def main():
         headers,
         folder_name=f'{base_folder_name}/responses',
         file_name=f'job_{job_id}_response.json')
+
+    status_code = determine_connection_status(job_run_response)
+    print(status_code)
 
     run_id = job_run_response['data']['id']
     pickle_folder_name = execute_request.clean_folder_name(
