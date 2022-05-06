@@ -16,6 +16,15 @@ except BaseException:
     from . import check_run_status
     from . import download_logs_artifacts
 
+EXIT_CODE_FINAL_STATUS_SUCCESS = 0
+EXIT_CODE_UNKNOWN_ERROR = 3
+EXIT_CODE_INVALID_CREDENTIALS = 200
+EXIT_CODE_INVALID_RESOURCE = 201
+
+EXIT_CODE_STATUS_INCOMPLETE = 210
+EXIT_CODE_FINAL_STATUS_ERRORED = 211
+EXIT_CODE_FINAL_STATUS_CANCELLED = 212
+
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -58,6 +67,31 @@ def write_json_to_file(json_object, file_name):
                 ensure_ascii=False,
                 indent=4))
     print(f'Response stored at {file_name}')
+
+
+def determine_connection_status(run_details_response):
+    status_code = run_details_response['status']['code']
+    user_message = run_details_response['status']['user_message']
+    if status_code == 401:
+        if 'Invalid token' in user_message:
+            print('The Service Token provided was invalid. Check to make sure there are no typos or preceding/trailing spaces.')
+            print(f'dbt API says: {user_message}')
+            sys.exit(EXIT_CODE_INVALID_CREDENTIALS)
+        else:
+            print(
+                f'An unknown error occurred with a status code of {status_code}')
+            print(f'dbt API says: {user_message}')
+            sys.exit(EXIT_CODE_UNKNOWN_ERROR)
+    if status_code == 404:
+        if 'requested resource not found':
+            print('The Account ID, Job ID, or Run ID provided was either invalid or your API Key doesn\'t have access to it. Check to make sure there are no typos or preceding/trailing spaces.')
+            print(f'dbt API says: {user_message}')
+            sys.exit(EXIT_CODE_INVALID_RESOURCE)
+        else:
+            print(
+                f'An unknown error occurred with a status code of {status_code}')
+            print(f'dbt API says: {user_message}')
+            sys.exit(EXIT_CODE_UNKNOWN_ERROR)
 
 
 def execute_job(
@@ -106,6 +140,8 @@ def main():
         headers,
         folder_name=f'{base_folder_name}/responses',
         file_name=f'job_{job_id}_response.json')
+
+    determine_connection_status(job_run_response)
 
     run_id = job_run_response['data']['id']
     pickle_folder_name = execute_request.clean_folder_name(
