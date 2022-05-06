@@ -148,7 +148,7 @@ def determine_connection_status(run_details_response):
     user_message = run_details_response['status']['user_message']
     if status_code == 401:
         if 'Invalid token' in user_message:
-            print('The API Key provided was invalid. Check to make sure there are no typos or preceding/trailing spaces.')
+            print('The Service Token provided was invalid. Check to make sure there are no typos or preceding/trailing spaces.')
             print(f'dbt API says: {user_message}')
             sys.exit(EXIT_CODE_INVALID_CREDENTIALS)
         else:
