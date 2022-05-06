@@ -75,22 +75,22 @@ def determine_connection_status(run_details_response):
     if status_code == 401:
         if 'Invalid token' in user_message:
             print('The API Key provided was invalid. Check to make sure there are no typos or preceding/trailing spaces.')
-            print(user_message)
+            print(f'dbt API says: {user_message}')
             sys.exit(EXIT_CODE_INVALID_CREDENTIALS)
         else:
             print(
                 f'An unknown error occurred with a status code of {status_code}')
-            print(user_message)
+            print(f'dbt API says: {user_message}')
             sys.exit(EXIT_CODE_UNKNOWN_ERROR)
     if status_code == 404:
         if 'requested resource not found':
             print('The Account ID, Job ID, or Run ID provided was either invalid or your API Key doesn\'t have access to it. Check to make sure there are no typos or preceding/trailing spaces.')
-            print(user_message)
+            print(f'dbt API says: {user_message}')
             sys.exit(EXIT_CODE_INVALID_RESOURCE)
         else:
             print(
                 f'An unknown error occurred with a status code of {status_code}')
-            print(user_message)
+            print(f'dbt API says: {user_message}')
             sys.exit(EXIT_CODE_UNKNOWN_ERROR)
 
 
