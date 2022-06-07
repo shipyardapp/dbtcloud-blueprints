@@ -5,8 +5,9 @@ import os
 import json
 import time
 import platform
-import pickle
 import sys
+import shipyard_utils as shipyard
+import code
 
 # Handle import difference between local and github install
 try:
@@ -59,16 +60,6 @@ def get_args():
     return args
 
 
-def write_json_to_file(json_object, file_name):
-    with open(file_name, 'w') as f:
-        f.write(
-            json.dumps(
-                json_object,
-                ensure_ascii=False,
-                indent=4))
-    print(f'Response stored at {file_name}')
-
-
 def determine_connection_status(run_details_response):
     status_code = run_details_response['status']['code']
     user_message = run_details_response['status']['user_message']
@@ -110,10 +101,10 @@ def execute_job(
     job_run_req = execute_request.execute_request(
         'POST', execute_job_url, headers, body)
     job_run_response = json.loads(job_run_req.text)
-    execute_request.create_folder_if_dne(folder_name)
-    combined_name = execute_request.combine_folder_and_file_name(
+    shipyard.files.create_folder_if_dne(folder_name)
+    combined_name = shipyard.files.combine_folder_and_file_name(
         folder_name, file_name)
-    write_json_to_file(
+    shipyard.files.write_json_to_file(
         job_run_response, combined_name)
     return job_run_response
 
@@ -123,34 +114,31 @@ def main():
     account_id = args.account_id
     job_id = args.job_id
     api_key = args.api_key
-    download_artifacts = execute_request.convert_to_boolean(
+    download_artifacts = shipyard.args.convert_to_boolean(
         args.download_artifacts)
-    download_logs = execute_request.convert_to_boolean(args.download_logs)
-    check_status = execute_request.convert_to_boolean(args.check_status)
+    download_logs = shipyard.args.convert_to_boolean(args.download_logs)
+    check_status = shipyard.args.convert_to_boolean(args.check_status)
     bearer_string = f'Bearer {api_key}'
     headers = {'Authorization': bearer_string}
 
-    artifact_directory_default = f'{os.environ.get("USER")}-artifacts'
-    base_folder_name = execute_request.clean_folder_name(
-        f'{os.environ.get("SHIPYARD_ARTIFACTS_DIRECTORY",artifact_directory_default)}/dbtcloud-blueprints/')
+    base_folder_name = shipyard.logs.determine_base_artifact_folder(
+        'dbtcloud')
+    artifact_subfolder_paths = shipyard.logs.determine_artifact_subfolders(
+        base_folder_name)
+    shipyard.logs.create_artifacts_folders(artifact_subfolder_paths)
 
     job_run_response = execute_job(
         account_id,
         job_id,
         headers,
-        folder_name=f'{base_folder_name}/responses',
+        folder_name=artifact_subfolder_paths['responses'],
         file_name=f'job_{job_id}_response.json')
 
     determine_connection_status(job_run_response)
 
     run_id = job_run_response['data']['id']
-    pickle_folder_name = execute_request.clean_folder_name(
-        f'{base_folder_name}/variables')
-    execute_request.create_folder_if_dne(pickle_folder_name)
-    pickle_file_name = execute_request.combine_folder_and_file_name(
-        pickle_folder_name, 'run_id.pickle')
-    with open(pickle_file_name, 'wb') as f:
-        pickle.dump(run_id, f)
+    shipyard.logs.create_pickle_file(
+        artifact_subfolder_paths, 'run_id', run_id)
 
     if check_status:
         is_complete = False

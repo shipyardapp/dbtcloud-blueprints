@@ -4,6 +4,7 @@ import os
 import json
 import pickle
 import sys
+import shipyard_utils as shipyard
 
 # Handle import difference between local and github install
 try:
@@ -61,11 +62,11 @@ def log_step_details(run_details_response, folder_name):
         print(
             f'No logs to download for run {run_details_response["data"]["id"]}')
     else:
-        execute_request.create_folder_if_dne(f'{folder_name}/responses/')
-        execute_request.create_folder_if_dne(f'{folder_name}/logs/')
-        debug_log_name = execute_request.combine_folder_and_file_name(
+        shipyard.files.create_folder_if_dne(f'{folder_name}/responses/')
+        shipyard.files.create_folder_if_dne(f'{folder_name}/logs/')
+        debug_log_name = shipyard.files.combine_folder_and_file_name(
             f'{folder_name}/logs/', 'dbt.log')
-        output_log_name = execute_request.combine_folder_and_file_name(
+        output_log_name = shipyard.files.combine_folder_and_file_name(
             f'{folder_name}/logs/', 'dbt_console_output.txt')
         number_of_steps = len(run_details_response['data']['run_steps'])
         for index, step in enumerate(
@@ -73,7 +74,7 @@ def log_step_details(run_details_response, folder_name):
             step_id = step['id']
             print(
                 f'Grabbing step details for step {step_id} ({index+1} of {number_of_steps})')
-            step_file_name = execute_request.combine_folder_and_file_name(
+            step_file_name = shipyard.files.combine_folder_and_file_name(
                 f'{folder_name}/responses/', f'step_{step_id}_response.json')
 
             write_json_to_file(
@@ -99,8 +100,8 @@ def get_artifact_details(
     artifact_details_req = execute_request.execute_request(
         'GET', get_artifact_details_url, headers)
     artifact_details_response = json.loads(artifact_details_req.text)
-    execute_request.create_folder_if_dne(folder_name)
-    combined_name = execute_request.combine_folder_and_file_name(
+    shipyard.files.create_folder_if_dne(folder_name)
+    combined_name = shipyard.files.combine_folder_and_file_name(
         folder_name, file_name)
     write_json_to_file(
         artifact_details_response,
@@ -130,11 +131,11 @@ def download_artifact(
     artifact_file_name = artifact_name.split('/')[-1]
     artifact_folder = artifact_name.replace(artifact_name.split('/')[-1], '')
 
-    full_folder = execute_request.combine_folder_and_file_name(
+    full_folder = shipyard.files.combine_folder_and_file_name(
         folder_name, artifact_folder)
-    execute_request.create_folder_if_dne(full_folder)
+    shipyard.files.create_folder_if_dne(full_folder)
 
-    full_file_name = execute_request.combine_folder_and_file_name(
+    full_file_name = shipyard.files.combine_folder_and_file_name(
         full_folder, artifact_file_name)
     try:
         artifact_details_req = download_file.download_file(
@@ -173,33 +174,29 @@ def main():
     account_id = args.account_id
     run_id = args.run_id
     api_key = args.api_key
-    download_artifacts = execute_request.convert_to_boolean(
+    download_artifacts = shipyard.args.convert_to_boolean(
         args.download_artifacts)
-    download_logs = execute_request.convert_to_boolean(args.download_logs)
+    download_logs = shipyard.args.convert_to_boolean(args.download_logs)
     bearer_string = f'Bearer {api_key}'
     headers = {'Authorization': bearer_string}
 
-    artifact_directory_default = f'{os.environ.get("USER")}-artifacts'
-    base_folder_name = execute_request.clean_folder_name(
-        f'{os.environ.get("SHIPYARD_ARTIFACTS_DIRECTORY",artifact_directory_default)}/dbtcloud-blueprints/')
-
-    pickle_folder_name = execute_request.clean_folder_name(
-        f'{base_folder_name}/variables')
-    execute_request.create_folder_if_dne(pickle_folder_name)
-    pickle_file_name = execute_request.combine_folder_and_file_name(
-        pickle_folder_name, 'run_id.pickle')
+    base_folder_name = shipyard.logs.determine_base_artifact_folder(
+        'dbtcloud')
+    artifact_subfolder_paths = shipyard.logs.determine_artifact_subfolders(
+        base_folder_name)
+    shipyard.logs.create_artifacts_folders(artifact_subfolder_paths)
 
     if args.run_id:
         run_id = args.run_id
     else:
-        with open(pickle_file_name, 'rb') as f:
-            run_id = pickle.load(f)
+        run_id = shipyard.logs.read_pickle_file(
+            artifact_subfolder_paths, 'run_id')
 
     run_details_response = check_run_status.get_run_details(
         account_id,
         run_id,
         headers,
-        folder_name=f'{base_folder_name}/responses',
+        folder_name=artifact_subfolder_paths['responses'],
         file_name=f'run_{run_id}_response.json')
     determine_connection_status(run_details_response)
 
@@ -211,7 +208,7 @@ def main():
             account_id,
             run_id,
             headers,
-            folder_name=f'{base_folder_name}/responses',
+            folder_name=artifact_subfolder_paths['responses'],
             file_name=f'artifacts_{run_id}_response.json')
         if artifacts_exist(artifacts):
             for index, artifact in enumerate(artifacts['data']):
@@ -222,7 +219,7 @@ def main():
                     run_id,
                     artifact,
                     headers,
-                    folder_name=f'{base_folder_name}/artifacts')
+                    folder_name=artifact_subfolder_paths['artifacts'])
 
 
 if __name__ == '__main__':
