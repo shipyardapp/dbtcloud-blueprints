@@ -1,1 +1,2 @@
 httprequest-blueprints @ git+https://github.com/shipyardapp/httprequest-blueprints@v0.1.4
+shipyard_utils==0.1.2-beta.2
