@@ -4,6 +4,7 @@ import os
 import json
 import sys
 import pickle
+import shipyard_utils as shipyard
 
 EXIT_CODE_FINAL_STATUS_SUCCESS = 0
 EXIT_CODE_UNKNOWN_ERROR = 3
@@ -46,8 +47,8 @@ def get_run_details(
     run_details_req = execute_request.execute_request(
         'GET', get_run_details_url, headers=headers, params=params)
     run_details_response = json.loads(run_details_req.text)
-    execute_request.create_folder_if_dne(folder_name)
-    combined_name = execute_request.combine_folder_and_file_name(
+    shipyard.files.create_folder_if_dne(folder_name)
+    combined_name = shipyard.files.combine_folder_and_file_name(
         folder_name, file_name)
     write_json_to_file(run_details_response, combined_name)
     return run_details_response
@@ -103,27 +104,23 @@ def main():
     bearer_string = f'Bearer {api_key}'
     headers = {'Authorization': bearer_string}
 
-    artifact_directory_default = f'{os.environ.get("USER")}-artifacts'
-    base_folder_name = execute_request.clean_folder_name(
-        f'{os.environ.get("SHIPYARD_ARTIFACTS_DIRECTORY",artifact_directory_default)}/dbtcloud-blueprints/')
-
-    pickle_folder_name = execute_request.clean_folder_name(
-        f'{base_folder_name}/variables')
-    execute_request.create_folder_if_dne(pickle_folder_name)
-    pickle_file_name = execute_request.combine_folder_and_file_name(
-        pickle_folder_name, 'run_id.pickle')
+    base_folder_name = shipyard.logs.determine_base_artifact_folder(
+        'dbtcloud')
+    artifact_subfolder_paths = shipyard.logs.determine_artifact_subfolders(
+        base_folder_name)
+    shipyard.logs.create_artifacts_folders(artifact_subfolder_paths)
 
     if args.run_id:
         run_id = args.run_id
     else:
-        with open(pickle_file_name, 'rb') as f:
-            run_id = pickle.load(f)
+        run_id = shipyard.logs.read_pickle_file(
+            artifact_subfolder_paths, 'run_id')
 
     run_details_response = get_run_details(
         account_id,
         run_id,
         headers,
-        folder_name=f'{base_folder_name}/responses',
+        folder_name=artifact_subfolder_paths['responses'],
         file_name=f'run_{run_id}_response.json')
     determine_connection_status(run_details_response)
     sys.exit(determine_run_status(run_details_response))
