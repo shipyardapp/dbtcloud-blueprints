@@ -49,15 +49,14 @@ def get_args():
             'FALSE'},
         required=False)
     parser.add_argument(
-        '--check-status',
-        dest='check_status',
+        '--wait-for-completion',
+        dest='wait_for_completion',
         default='TRUE',
         choices={
             'TRUE',
             'FALSE'},
         required=False)
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def determine_connection_status(run_details_response):
@@ -117,7 +116,7 @@ def main():
     download_artifacts = shipyard.args.convert_to_boolean(
         args.download_artifacts)
     download_logs = shipyard.args.convert_to_boolean(args.download_logs)
-    check_status = shipyard.args.convert_to_boolean(args.check_status)
+    wait_for_completion = shipyard.args.convert_to_boolean(args.wait_for_completion)
     bearer_string = f'Bearer {api_key}'
     headers = {'Authorization': bearer_string}
 
@@ -140,7 +139,7 @@ def main():
     shipyard.logs.create_pickle_file(
         artifact_subfolder_paths, 'run_id', run_id)
 
-    if check_status:
+    if wait_for_completion:
         is_complete = False
         while not is_complete:
             run_details_response = check_run_status.get_run_details(
@@ -153,7 +152,7 @@ def main():
             if not is_complete:
                 print(
                     f'Run {run_id} is not complete. Waiting 30 seconds and trying again.')
-                time.sleep(30)
+                time.sleep(60)
         # Quick solution to prevent pulling logs at the same moment the job
         # completes.
         time.sleep(30)
