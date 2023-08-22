@@ -52,9 +52,6 @@ def get_args():
         '--wait-for-completion',
         dest='wait_for_completion',
         default='TRUE',
-        choices={
-            'TRUE',
-            'FALSE'},
         required=False)
     return parser.parse_args()
 
